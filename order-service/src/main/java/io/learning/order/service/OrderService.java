@@ -50,6 +50,13 @@ public class OrderService {
         DistributedTransaction transaction = restTemplate.postForObject("http://transaction-server/transactions", new DistributedTransaction(), DistributedTransaction.class);
         log.info("Trasaction created: {}", transaction);
         Order savedOrder = orderRepository.save(order);
+
+        // product check
+        Product check = restTemplate.getForObject("http://product-service/products/{id}", Product.class, order.getProductId());
+        if (check.getQuantity() < order.getQuantity()) {
+            throw new OrderProcessingException("Insufficient product quantity. Available: " + check.getQuantity() + ", Demand: " + order.getQuantity());
+        }
+
         Product product = updateProduct(transaction.getId(), savedOrder);
         log.info("Product updated: {}", product);
         int totalAmount = product.getPrice() * order.getQuantity();
